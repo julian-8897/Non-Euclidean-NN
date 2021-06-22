@@ -22,9 +22,10 @@ def m_scalar_mul(r, x):
 
 def m_vector_mul(M, x):
     # Mobius vector multiplication operation
-    norm_Mx = linalg.norm(M*x)
+    Mx = np.dot(M, x)
+    norm_Mx = linalg.norm(Mx)
     norm_x = linalg.norm(x)
-    res = np.tanh((norm_Mx/norm_x) * np.arctanh(norm_x)) * (M*x/norm_Mx)
+    res = np.tanh((norm_Mx/norm_x) * np.arctanh(norm_x)) * (Mx/norm_Mx)
     return res
 
 
