@@ -11,14 +11,19 @@ class HypFF(nn.Module):
 
     def __init__(self):
         super(HypFF, self).__init__()
-        self.fc1 = mobius.MobLinear(1, 1)
-        self.fc2 = mobius.MobLinear(1, 1)
+        self.flatten = nn.Flatten()
+        self.fc1 = mobius.MobLinear(28*28, 512)
+        self.fc2 = mobius.MobLinear(512, 512)
+        self.fc3 = mobius.MobLinear(512, 10)
 
     def forward(self, x):
 
         ball = geoopt.PoincareBall()
+        x = self.flatten(x)
+        x = ball.projx(x)
         x = ball.mobius_fn_apply(F.relu, self.fc1(x))
-        x = self.fc2(x)
+        x = ball.mobius_fn_apply(F.relu, self.fc2(x))
+        x = ball.mobius_fn_apply(F.relu, self.fc3(x))
         return x
 
     # Things to do:
