@@ -29,10 +29,6 @@ def linear_transform(
     output = ball.mobius_matvec(weight, input)
     if bias is not None:
         output = ball.mobius_add(output, bias)
-    # if nonlin is not None:
-    #     output = ball.logmap0(output)
-    #     output = nonlin(output)
-    #     output = ball.expmap0(output)
     return output
 
 
@@ -57,6 +53,13 @@ class MobLinear(torch.nn.Linear):
             bias=self.bias,
             ball=self.ball
         )
+
+    # @torch.no_grad()
+    # def reset_parameters(self):
+    #     torch.nn.init.eye_(self.weight)
+    #     self.weight.add_(torch.rand_like(self.weight).mul_(1e-3))
+    #     if self.bias is not None:
+    #         self.bias.zero_()
 
 
 # def m_add(x, y):

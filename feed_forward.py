@@ -3,7 +3,6 @@ import numpy as np
 import mobius
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import geoopt
 
 
@@ -11,19 +10,23 @@ class HypFF(nn.Module):
 
     def __init__(self):
         super(HypFF, self).__init__()
-        self.flatten = nn.Flatten()
-        self.fc1 = mobius.MobLinear(28*28, 512)
-        self.fc2 = mobius.MobLinear(512, 512)
-        self.fc3 = mobius.MobLinear(512, 10)
+        # self.flatten = nn.Flatten()
+        self.fc1 = mobius.MobLinear(784, 64)
+        self.fc2 = mobius.MobLinear(64, 32)
+        self.fc3 = mobius.MobLinear(32, 10)
 
     def forward(self, x):
 
-        ball = geoopt.PoincareBall()
-        x = self.flatten(x)
-        x = ball.projx(x)
-        x = ball.mobius_fn_apply(F.relu, self.fc1(x))
-        x = ball.mobius_fn_apply(F.relu, self.fc2(x))
-        x = ball.mobius_fn_apply(F.relu, self.fc3(x))
+        # ball = geoopt.PoincareBall()
+        # x = self.flatten(x)
+        # x = ball.projx(x)
+        # x = ball.mobius_fn_apply(nn.ReLU(), self.fc1(x))
+        # x = ball.mobius_fn_apply(nn.ReLU(), self.fc2(x))
+        x = self.fc1(x)
+        x = self.fc2(x)
+        x = self.fc3(x)
+        # x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
+        # x = ball.logmap0(x)
         return x
 
     # Things to do:
@@ -33,7 +36,15 @@ class HypFF(nn.Module):
 
 
 ######################################################
+# ball = geoopt.PoincareBall()
+# model = HypFF()
+# params = list(model.parameters())
+# point = torch.Tensor([8.8])
+# input = ball.projx(point)
+# output = model(input)
 
+# print(model)
+# print("Output is :", output)
 # model.zero_grad()
 # output.backward(torch.randn(1))
 
