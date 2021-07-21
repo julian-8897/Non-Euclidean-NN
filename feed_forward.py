@@ -11,9 +11,9 @@ class HypFF(nn.Module):
     def __init__(self):
         super(HypFF, self).__init__()
         # self.flatten = nn.Flatten()
-        self.fc1 = mobius.MobLinear(784, 64)
-        self.fc2 = mobius.MobLinear(64, 32)
-        self.fc3 = mobius.MobLinear(32, 10)
+        self.fc1 = mobius.MobLinear(784, 512)
+        self.fc2 = mobius.MobLinear(512, 256)
+        self.fc3 = mobius.MobLinear(256, 10)
 
     def forward(self, x):
 

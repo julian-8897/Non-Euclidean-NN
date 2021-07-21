@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from torch import nn, optim
 from torch.autograd import Variable
+from torch.functional import Tensor
+
 
 
 def test_network(net, trainloader):
