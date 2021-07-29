@@ -17,15 +17,15 @@ class HypFF(nn.Module):
 
     def forward(self, x):
 
-        # ball = geoopt.PoincareBall()
+        ball = geoopt.PoincareBall()
         # x = self.flatten(x)
         # x = ball.projx(x)
-        # x = ball.mobius_fn_apply(nn.ReLU(), self.fc1(x))
-        # x = ball.mobius_fn_apply(nn.ReLU(), self.fc2(x))
-        x = self.fc1(x)
-        x = self.fc2(x)
-        x = self.fc3(x)
-        # x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
+        x = ball.mobius_fn_apply(nn.ReLU(), self.fc1(x))
+        x = ball.mobius_fn_apply(nn.ReLU(), self.fc2(x))
+        # x = self.fc1(x)
+        # x = self.fc2(x)
+        # x = self.fc3(x)
+        x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
         # x = ball.logmap0(x)
         return x
 
