@@ -6,7 +6,6 @@ from torch.autograd import Variable
 from torch.functional import Tensor
 
 
-
 def test_network(net, trainloader):
 
     criterion = nn.MSELoss()
