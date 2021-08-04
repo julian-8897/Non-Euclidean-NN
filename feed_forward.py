@@ -28,6 +28,6 @@ class HypFF(nn.Module):
         x = ball.mobius_fn_apply(self.act_fn, self.fc2(x))
         # x = self.fc1(x)
         # x = self.fc2(x)
-        #x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
-        x = self.fc3(x)
+        x = ball.mobius_fn_apply(nn.Softmax(dim=1), self.fc3(x))
+        #x = self.fc3(x)
         return x
