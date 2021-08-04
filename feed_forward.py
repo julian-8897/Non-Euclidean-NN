@@ -24,10 +24,10 @@ class HypFF(nn.Module):
 
         ball = geoopt.PoincareBall()
         # x = ball.projx(x)
-        x = ball.mobius_fn_apply(nn.ReLU(), self.fc1(x))
-        x = ball.mobius_fn_apply(nn.ReLU(), self.fc2(x))
+        x = ball.mobius_fn_apply(self.act_fn, self.fc1(x))
+        x = ball.mobius_fn_apply(self.act_fn, self.fc2(x))
         # x = self.fc1(x)
         # x = self.fc2(x)
-        x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
-        #x = self.fc3(x)
+        #x = ball.mobius_fn_apply(nn.LogSoftmax(dim=1), self.fc3(x))
+        x = self.fc3(x)
         return x
