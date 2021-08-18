@@ -1,131 +1,86 @@
-import os
-import torch
-import torch.nn as nn
-import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import random
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
-from torchvision.utils import save_image
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from pytorch_lightning import Trainer
+import torch
+import torchvision
+from torchvision import transforms
+from torch.utils.data import DataLoader, random_split
+from torch import nn
+import torch.nn.functional as F
+import torch.optim as optim
 
 
-class VAE(pl.LightningModule):
+class VariationalEncoder(nn.Module):
+    def __init__(self, latent_dims):
+        super(VariationalEncoder, self).__init__()
+        self.conv1 = nn.Conv2d(1, 8, 3, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
+        self.batch2 = nn.BatchNorm2d(16)
+        self.conv3 = nn.Conv2d(16, 32, 3, stride=2, padding=0)
+        self.linear1 = nn.Linear(3*3*32, 128)
+        self.linear2 = nn.Linear(128, latent_dims)
+        self.linear3 = nn.Linear(128, latent_dims)
 
-    def __init__(self, alpha=1):
-        super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(784, 196), nn.ReLU(), nn.BatchNorm1d(196, momentum=0.7),
-                                     nn.Linear(196, 49), nn.ReLU(), nn.BatchNorm1d(
-                                         49, momentum=0.7),
-                                     nn.Linear(49, 28), nn.LeakyReLU())
-        self.hidden2mu = nn.Linear(28, 28)
-        self.hidden2log_var = nn.Linear(28, 28)
-        self.alpha = alpha
-        self.decoder = nn.Sequential(nn.Linear(28, 49), nn.ReLU(),
-                                     nn.Linear(49, 196), nn.ReLU(),
-                                     nn.Linear(196, 784), nn.Tanh())
-        self.data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5,), std=(0.5,))])
-
-    def reparametrize(self, mu, log_var):
-        # Reparametrization Trick to allow gradients to backpropagate from the
-        # stochastic part of the model
-        sigma = torch.exp(0.5*log_var)
-        z = torch.randn(size=(mu.size(0), mu.size(1)))
-        z = z.type_as(mu)  # Setting z to be .cuda when using GPU training
-        return mu + sigma*z
-
-    def encode(self, x):
-        hidden = self.encoder(x)
-        mu = self.hidden2mu(hidden)
-        log_var = self.hidden2log_var(hidden)
-        return mu, log_var
-
-    def decode(self, x):
-        x = self.decoder(x)
-        return x
+        self.N = torch.distributions.Normal(0, 1)
+        # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
+        # self.N.scale = self.N.scale.cuda()
+        self.kl = 0
 
     def forward(self, x):
-        batch_size = x.size(0)
-        x = x.view(batch_size, -1)
-        mu, log_var = self.encode(x)
-        hidden = self.reparametrize(mu, log_var)
-        return self.decoder(hidden)
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
-
-    def training_step(self, batch, batch_idx):
-        x, _ = batch
-        batch_size = x.size(0)
-        x = x.view(batch_size, -1)
-        mu, log_var = self.encode(x)
-
-        kl_loss = (-0.5*(1+log_var - mu**2 -
-                   torch.exp(log_var)).sum(dim=1)).mean(dim=0)
-        hidden = self.reparametrize(mu, log_var)
-        x_out = self.decode(hidden)
-
-        recon_loss_criterion = nn.MSELoss()
-        recon_loss = recon_loss_criterion(x, x_out)
-        # print(kl_loss.item(),recon_loss.item())
-        loss = recon_loss*self.alpha + kl_loss
-
-        self.log('train_loss', loss, on_step=True,
-                 on_epoch=True, prog_bar=True)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, _ = batch
-        batch_size = x.size(0)
-        x = x.view(batch_size, -1)
-        mu, log_var = self.encode(x)
-
-        kl_loss = (-0.5*(1+log_var - mu**2 -
-                   torch.exp(log_var)).sum(dim=1)).mean(dim=0)
-        hidden = self.reparametrize(mu, log_var)
-        x_out = self.decode(hidden)
-
-        recon_loss_criterion = nn.MSELoss()
-        recon_loss = recon_loss_criterion(x, x_out)
-        # print(kl_loss.item(),recon_loss.item())
-        loss = recon_loss*self.alpha + kl_loss
-        self.log('val_kl_loss', kl_loss, on_step=True, on_epoch=True)
-        self.log('val_recon_loss', recon_loss, on_step=True, on_epoch=True)
-        self.log('val_loss', loss, on_step=True, on_epoch=True)
-        return x_out, loss
-
-    def scale_image(self, img):
-        out = (img + 1) / 2
-        return out
-
-    def train_dataloader(self):
-        mnist_train = datasets.MNIST(
-            'PATH_TO_STORE_TRAINSET', download=True, train=True, transform=self.data_transform)
-        return DataLoader(mnist_train, batch_size=64)
-
-    def val_dataloader(self):
-        mnist_val = datasets.MNIST(
-            'PATH_TO_STORE_TESTSET', download=True, train=False, transform=self.data_transform)
-        return DataLoader(mnist_val, batch_size=64)
-
-    def validation_epoch_end(self, outputs):
-        if not os.path.exists('vae_images'):
-            os.makedirs('vae_images')
-        choice = random.choice(outputs)  # Choose a random batch from outputs
-        output_sample = choice[0]  # Take the recreated image
-        # Reshape tensor to stack the images nicely
-        output_sample = output_sample.reshape(-1, 1, 28, 28)
-        output_sample = self.scale_image(output_sample)
-        save_image(output_sample,
-                   f"vae_images/epoch_{self.current_epoch+1}.png")
+        # x = x.to(device)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.batch2(self.conv2(x)))
+        x = F.relu(self.conv3(x))
+        x = torch.flatten(x, start_dim=1)
+        x = F.relu(self.linear1(x))
+        mu = self.linear2(x)
+        sigma = torch.exp(self.linear3(x))
+        z = mu + sigma*self.N.sample(mu.shape)
+        self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
+        return z
 
 
-def main():
-    trainer = Trainer(gpus=0, auto_lr_find=True, max_epochs=25)
-    trainer.fit(VAE())
+class Decoder(nn.Module):
+
+    def __init__(self, latent_dims):
+        super().__init__()
+
+        self.decoder_lin = nn.Sequential(
+            nn.Linear(latent_dims, 128),
+            nn.ReLU(True),
+            nn.Linear(128, 3 * 3 * 32),
+            nn.ReLU(True)
+        )
+
+        self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 3, 3))
+
+        self.decoder_conv = nn.Sequential(
+            nn.ConvTranspose2d(32, 16, 3, stride=2, output_padding=0),
+            nn.BatchNorm2d(16),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(16, 8, 3, stride=2,
+                               padding=1, output_padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(8, 1, 3, stride=2, padding=1, output_padding=1)
+        )
+
+    def forward(self, x):
+        x = self.decoder_lin(x)
+        x = self.unflatten(x)
+        x = self.decoder_conv(x)
+        x = torch.sigmoid(x)
+        return x
 
 
-if __name__ == "__main__":
-    main()
+class VariationalAutoencoder(nn.Module):
+    def __init__(self, latent_dims):
+        super(VariationalAutoencoder, self).__init__()
+        self.encoder = VariationalEncoder(latent_dims)
+        self.decoder = Decoder(latent_dims)
+
+    def forward(self, x):
+        # x = x.to(device)
+        z = self.encoder(x)
+        return self.decoder(z)
