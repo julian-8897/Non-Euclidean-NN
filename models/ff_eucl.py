@@ -1,9 +1,7 @@
-import math
 import numpy as np
-import mobius
 import torch
 import torch.nn as nn
-import geoopt
+
 
 class EuclFF(nn.Module):
 
@@ -26,5 +24,5 @@ class EuclFF(nn.Module):
         x = self.fc2(x)
         x = self.act_fn(x)
         x = self.fc3(x)
-        
+
         return x
