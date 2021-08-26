@@ -1,3 +1,4 @@
+from geoopt.manifolds.stereographic.manifold import PoincareBall
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,12 +11,14 @@ from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 import wrapped_normal
-import geoopt
+#from geoopt import PoincareBall as pball
+import poincareball
 
 
 class VariationalEncoder(nn.Module):
     def __init__(self, latent_dims):
         super(VariationalEncoder, self).__init__()
+        self.latent_dims = latent_dims
         self.conv1 = nn.Conv2d(1, 8, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
         self.batch2 = nn.BatchNorm2d(16)
@@ -24,7 +27,8 @@ class VariationalEncoder(nn.Module):
         self.linear2 = nn.Linear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
 
-        self.N = torch.distributions.Normal(0, 1)
+        self.N = wrapped_normal.WrappedNormal(
+            torch.Tensor([0]), torch.Tensor([1]), poincareball.PoincareBall(self.latent_dims))
         # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
         # self.N.scale = self.N.scale.cuda()
         self.kl = 0
@@ -40,7 +44,7 @@ class VariationalEncoder(nn.Module):
         sigma = torch.exp(self.linear3(x))
         # reparametrisation trick
         z = mu + sigma*self.N.sample(mu.shape)
-        ball = geoopt.PoincareBall()
+        ball = poincareball.PoincareBall(self.latent_dims)
         z = ball.expmap0(z)
         # K-L divergence
         self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
@@ -52,6 +56,7 @@ class Decoder(nn.Module):
     def __init__(self, latent_dims):
         super().__init__()
 
+        self.latent_dims = latent_dims
         self.decoder_lin = nn.Sequential(
             nn.Linear(latent_dims, 128),
             nn.ReLU(True),
@@ -73,8 +78,8 @@ class Decoder(nn.Module):
         )
 
     def forward(self, x):
-        ball = geoopt.PoincareBall()
-        x = ball.logmap0(x)
+        #ball = geoopt.PoincareBall()
+        x = poincareball.PoincareBall(self.latent_dims).logmap0(x)
         x = self.decoder_lin(x)
         x = self.unflatten(x)
         x = self.decoder_conv(x)

@@ -19,12 +19,7 @@ def make_manifold(ball=None, c=None):
     return ball
 
 
-def linear_transform(
-        input,
-        weight,
-        bias=None,
-        *,
-        ball: geoopt.PoincareBall):
+def linear_transform(input, weight, bias=None,  *, ball: geoopt.PoincareBall):
 
     output = ball.mobius_matvec(weight, input)
     if bias is not None:
@@ -33,13 +28,7 @@ def linear_transform(
 
 
 class MobLinear(torch.nn.Linear):
-    def __init__(
-        self,
-        *args,
-        ball=None,
-        c=1.0,
-        **kwargs
-    ):
+    def __init__(self, *args, ball=None, c=1.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.ball = make_manifold(ball, c)
         if self.bias is not None:

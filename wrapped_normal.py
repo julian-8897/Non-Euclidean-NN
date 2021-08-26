@@ -26,7 +26,7 @@ class WrappedNormal(torch.distributions.Distribution):
     def scale(self):
         return F.softplus(self._scale) if self.softplus else self._scale
 
-    def __init__(self, loc, scale, manifold: geoopt.PoincareBall, validate_args=None, softplus=False):
+    def __init__(self, loc, scale, manifold, validate_args=None, softplus=False):
         self.dtype = loc.dtype
         self.softplus = softplus
         self.loc, self._scale = broadcast_all(loc, scale)
@@ -56,17 +56,17 @@ class WrappedNormal(torch.distributions.Distribution):
         z = self.manifold.expmap(self.loc, u)
         return z
 
-    def log_prob(self, x):
-        shape = x.shape
-        loc = self.loc.unsqueeze(0).expand(
-            x.shape[0], *self.batch_shape, self.manifold.coord_dim)
-        if len(shape) < len(loc.shape):
-            x = x.unsqueeze(1)
-        v = self.manifold.logmap(loc, x)
-        v = self.manifold.transp(loc, self.manifold.zero, v)
-        u = v * self.manifold.lambda_x(self.manifold.zero, keepdim=True)
-        norm_pdf = Normal(torch.zeros_like(self.scale),
-                          self.scale).log_prob(u).sum(-1, keepdim=True)
-        logdetexp = self.manifold.logdetexp(loc, x, keepdim=True)
-        result = norm_pdf - logdetexp
-        return result
+    # def log_prob(self, x):
+    #     shape = x.shape
+    #     loc = self.loc.unsqueeze(0).expand(
+    #         x.shape[0], *self.batch_shape, self.manifold.coord_dim)
+    #     if len(shape) < len(loc.shape):
+    #         x = x.unsqueeze(1)
+    #     v = self.manifold.logmap(loc, x)
+    #     v = self.manifold.transp(loc, self.manifold.zero, v)
+    #     u = v * self.manifold.lambda_x(self.manifold.zero, keepdim=True)
+    #     norm_pdf = Normal(torch.zeros_like(self.scale),
+    #                       self.scale).log_prob(u).sum(-1, keepdim=True)
+    #     logdetexp = self.manifold.logdetexp(loc, x, keepdim=True)
+    #     result = norm_pdf - logdetexp
+    #     return result

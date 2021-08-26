@@ -21,8 +21,8 @@ class HypFF(nn.Module):
 
     def forward(self, x):
 
-        ball = geoopt.PoincareBall()
-        # x = ball.projx(x)
+        ball = mobius.make_manifold()
+        #x = ball.projx(x)
         x = ball.mobius_fn_apply(self.act_fn, self.fc1(x))
         x = ball.mobius_fn_apply(self.act_fn, self.fc2(x))
         # x = self.fc1(x)
