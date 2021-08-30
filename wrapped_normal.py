@@ -55,7 +55,6 @@ class WrappedNormal(torch.distributions.Distribution):
         u = self.manifold.transp(self.manifold.zero, self.loc, v)
         z = self.manifold.expmap(self.loc, u)
         return z
-
     # def log_prob(self, x):
     #     shape = x.shape
     #     loc = self.loc.unsqueeze(0).expand(

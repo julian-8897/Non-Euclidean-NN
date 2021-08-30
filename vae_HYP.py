@@ -27,8 +27,8 @@ class VariationalEncoder(nn.Module):
         self.linear2 = nn.Linear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
 
-        self.N = wrapped_normal.WrappedNormal(
-            torch.Tensor([0]), torch.Tensor([1]), poincareball.PoincareBall(self.latent_dims))
+        # self.N = wrapped_normal.WrappedNormal(
+        #     torch.zeros(latent_dims), torch.Tensor([1]), poincareball.PoincareBall(self.latent_dims))
         # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
         # self.N.scale = self.N.scale.cuda()
         self.kl = 0
@@ -40,14 +40,15 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
         x = F.relu(self.linear1(x))
-        mu = self.linear2(x)
-        sigma = torch.exp(self.linear3(x))
+        mu = poincareball.PoincareBall(
+            self.latent_dims).expmap0(self.linear2(x))
+        sigma = F.softplus(torch.exp(self.linear3(x)))
+        self.N = wrapped_normal.WrappedNormal(
+            mu, sigma, poincareball.PoincareBall(self.latent_dims))
         # reparametrisation trick
-        z = mu + sigma*self.N.sample(mu.shape)
-        ball = poincareball.PoincareBall(self.latent_dims)
-        z = ball.expmap0(z)
+        z = self.N.sample()
         # K-L divergence
-        self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
+        self.kl = ((sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum())
         return z
 
 
@@ -78,7 +79,6 @@ class Decoder(nn.Module):
         )
 
     def forward(self, x):
-        #ball = geoopt.PoincareBall()
         x = poincareball.PoincareBall(self.latent_dims).logmap0(x)
         x = self.decoder_lin(x)
         x = self.unflatten(x)
