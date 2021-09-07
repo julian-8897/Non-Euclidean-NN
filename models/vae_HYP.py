@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
-import wrapped_normal
+from hypmath import wrapped_normal
 #from geoopt import PoincareBall as pball
-import poincareball
+from hypmath import poincareball
 
 
 class VariationalEncoder(nn.Module):
@@ -39,6 +39,7 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.batch2(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
+        #x = poincareball.PoincareBall.projx(x)
         x = F.relu(self.linear1(x))
         mu = poincareball.PoincareBall(
             self.latent_dims).expmap0(self.linear2(x))

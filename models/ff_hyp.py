@@ -1,5 +1,5 @@
 import numpy as np
-import mobius
+from hypmath import mobius
 import torch
 import torch.nn as nn
 import geoopt
