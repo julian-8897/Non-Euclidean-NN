@@ -39,7 +39,7 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.batch2(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
-        x = poincareball.PoincareBall(self.latent_dims).projx(x)
+        #x = poincareball.PoincareBall(self.latent_dims).projx(x)
         x = F.relu(self.linear1(x))
         mu = poincareball.PoincareBall(
             self.latent_dims).expmap0(self.linear2(x))
