@@ -7,7 +7,7 @@ MIN_NORM = 1e-15
 
 class PoincareBall(PoincareBallParent):
 
-    def __init__(self, dim, c=10.0):
+    def __init__(self, dim, c=1.0):
         super().__init__(c)
         self.register_buffer("dim", torch.as_tensor(dim, dtype=torch.int))
 

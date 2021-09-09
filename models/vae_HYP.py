@@ -39,7 +39,7 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.batch2(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
-        #x = poincareball.PoincareBall.projx(x)
+        x = poincareball.PoincareBall(self.latent_dims).projx(x)
         x = F.relu(self.linear1(x))
         mu = poincareball.PoincareBall(
             self.latent_dims).expmap0(self.linear2(x))
@@ -47,7 +47,7 @@ class VariationalEncoder(nn.Module):
         self.N = wrapped_normal.WrappedNormal(
             mu, sigma, poincareball.PoincareBall(self.latent_dims))
         # reparametrisation trick
-        z = self.N.sample()
+        z = self.N.rsample()
         # K-L divergence
         self.kl = ((sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum())
         return z
