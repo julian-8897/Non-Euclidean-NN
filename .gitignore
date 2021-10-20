@@ -3,3 +3,4 @@ PATH_TO_STORE_TRAINSET/
 __pycache__/
 .vscode/
 runs/
+data/

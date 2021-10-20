@@ -12,13 +12,17 @@ import torch.optim as optim
 
 
 class VariationalEncoder(nn.Module):
-    def __init__(self, latent_dims):
+    def __init__(self, nc, ndf, latent_dims):
         super(VariationalEncoder, self).__init__()
-        self.conv1 = nn.Conv2d(3, 8, 3, stride=2, padding=1)
-        self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
-        self.batch2 = nn.BatchNorm2d(16)
-        self.conv3 = nn.Conv2d(16, 32, 3, stride=2, padding=0)
-        self.linear1 = nn.Linear(3*3*32, 128)
+
+        self.nc = nc
+        self.ndf = ndf
+
+        self.conv1 = nn.Conv2d(nc, ndf, 4, 2, 1)
+        self.conv2 = nn.Conv2d(ndf, ndf*2, 4, 2, 1)
+        self.batch2 = nn.BatchNorm2d(ndf*2)
+        self.conv3 = nn.Conv2d(ndf*2, ndf*4, 4, 2, 1)
+        self.linear1 = nn.Linear(ndf*4*4, 128)
         self.linear2 = nn.Linear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
 
@@ -33,7 +37,7 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.batch2(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
-        #x = x.view(-1, 3*3*32)
+        #x = x.view(-1, self.ndf*4)
         x = F.relu(self.linear1(x))
         mu = self.linear2(x)
         sigma = torch.exp(self.linear3(x))
@@ -66,7 +70,7 @@ class Decoder(nn.Module):
                                padding=1, output_padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(True),
-            nn.ConvTranspose2d(8, 3, 3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(8, 1, 3, stride=2, padding=1, output_padding=1)
         )
 
     def forward(self, x):
@@ -78,9 +82,9 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, latent_dims):
+    def __init__(self, nc, ndf, latent_dims):
         super(VariationalAutoencoder, self).__init__()
-        self.encoder = VariationalEncoder(latent_dims)
+        self.encoder = VariationalEncoder(nc, ndf, latent_dims)
         self.decoder = Decoder(latent_dims)
 
     def forward(self, x):

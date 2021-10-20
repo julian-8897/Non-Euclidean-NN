@@ -37,13 +37,13 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.batch2(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
-        x = poincareball.PoincareBall(self.latent_dims).projx(x)
+        x = poincareball.PoincareBall(self.latent_dims).expmap0(x)
         #x = F.relu(self.linear1(x))
-        x = poincareball.PoincareBall(
-            self.latent_dims).mobius_fn_apply(nn.ReLU(), self.linear1(x))
-        mu = self.linear2(x)
-        sigma = torch.exp(poincareball.PoincareBall(
-            self.latent_dims).logmap0(self.linear3(x)))
+        x = self.linear1(x)
+        x = poincareball.PoincareBall(self.latent_dims).logmap0(x)
+        mu = poincareball.PoincareBall(
+            self.latent_dims).expmap0(self.linear2(x))
+        sigma = F.softplus(torch.exp(self.linear3(x)))
         self.N = wrapped_normal.WrappedNormal(
             mu, sigma, poincareball.PoincareBall(self.latent_dims))
         # reparametrisation trick
