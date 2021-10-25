@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
-from hypmath import wrapped_normal
+from hypmath import wrapped_normal, mobius
 #from geoopt import PoincareBall as pball
 from hypmath import poincareball
 
@@ -19,12 +19,12 @@ class VariationalEncoder(nn.Module):
     def __init__(self, latent_dims):
         super(VariationalEncoder, self).__init__()
         self.latent_dims = latent_dims
-        self.conv1 = nn.Conv2d(1, 8, 3, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(3, 8, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
         self.batch2 = nn.BatchNorm2d(16)
         self.conv3 = nn.Conv2d(16, 32, 3, stride=2, padding=0)
         self.linear1 = nn.Linear(3*3*32, 128)
-        self.linear2 = nn.Linear(128, latent_dims)
+        self.linear2 = mobius.MobLinear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
 
         # self.N = wrapped_normal.WrappedNormal(
@@ -76,7 +76,7 @@ class Decoder(nn.Module):
                                padding=1, output_padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(True),
-            nn.ConvTranspose2d(8, 1, 3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(8, 3, 3, stride=2, padding=1, output_padding=1)
         )
 
     def forward(self, x):
