@@ -10,27 +10,27 @@ class VariationalEncoder(nn.Module):
         self.nc = nc
         self.ndf = ndf
         self.latent_dims = latent_dims
-        self.conv1 = nn.Conv2d(nc, ndf, 4, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(nc, ndf, 4, stride=2, padding=1, bias=False)
         self.batch1 = nn.BatchNorm2d(ndf)
 
-        self.conv2 = nn.Conv2d(ndf, ndf*2, 4, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(ndf, ndf*2, 4, stride=2, padding=1, bias=False)
         self.batch2 = nn.BatchNorm2d(ndf*2)
 
         self.conv3 = nn.Conv2d(ndf*2, ndf*4, 4, stride=2,
-                               padding=1)
+                               padding=1, bias=False)
         self.batch3 = nn.BatchNorm2d(ndf*4)
 
         self.conv4 = nn.Conv2d(ndf*4, ndf*8, 4, stride=2,
-                               padding=1)
+                               padding=1, bias=False)
         self.batch4 = nn.BatchNorm2d(ndf*8)
 
         self.conv5 = nn.Conv2d(ndf*8, ndf*8, 4, stride=2,
-                               padding=1)
+                               padding=1, bias=False)
         self.batch5 = nn.BatchNorm2d(ndf*8)
 
         #self.linear1 = nn.Linear(ndf*8, 256)
-        self.linear2 = nn.Linear(ndf*8*4*4, latent_dims)
-        self.linear3 = nn.Linear(ndf*8*4*4, latent_dims)
+        self.linear2 = nn.Linear(ndf*8*4, latent_dims)
+        self.linear3 = nn.Linear(ndf*8*4, latent_dims)
 
         self.N = torch.distributions.Normal(0, 1)
 
@@ -96,8 +96,9 @@ class Decoder(nn.Module):
 
         self.ngf = ngf
         self.latent_dims = latent_dims
-        self.leakyrelu = nn.LeakyReLU(0.2)
+        self.leakyrelu = nn.LeakyReLU(0.2, True)
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
         # self.deconv1 = nn.ConvTranspose2d(
         #     ngf*8, ngf*8, 4, stride=2, padding=1)
@@ -119,29 +120,29 @@ class Decoder(nn.Module):
         #     ngf, nc, 3, stride=1, padding=1)
         self.d1 = nn.Linear(latent_dims, ngf*8*2*4*4)
 
-        self.up1 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up1 = nn.UpsamplingNearest2d(scale_factor=1)
         self.pd1 = nn.ReplicationPad2d(1)
-        self.d2 = nn.Conv2d(ngf*8*2, ngf*8, 3, 1)
-        self.bn6 = nn.BatchNorm2d(ngf*8, 1.e-3)
+        self.d2 = nn.Conv2d(ngf*8*2, ngf*8, 3, 1, bias=False)
+        self.bn6 = nn.BatchNorm2d(ngf*8, 1.e-5)
 
-        self.up2 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up2 = nn.UpsamplingNearest2d(scale_factor=2)
         self.pd2 = nn.ReplicationPad2d(1)
-        self.d3 = nn.Conv2d(ngf*8, ngf*4, 3, 1)
-        self.bn7 = nn.BatchNorm2d(ngf*4, 1.e-3)
+        self.d3 = nn.Conv2d(ngf*8, ngf*4, 3, 1, bias=False)
+        self.bn7 = nn.BatchNorm2d(ngf*4, 1.e-5)
 
-        self.up3 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up3 = nn.UpsamplingNearest2d(scale_factor=2)
         self.pd3 = nn.ReplicationPad2d(1)
         self.d4 = nn.Conv2d(ngf*4, ngf*2, 3, 1)
-        self.bn8 = nn.BatchNorm2d(ngf*2, 1.e-3)
+        self.bn8 = nn.BatchNorm2d(ngf*2, 1.e-5)
 
-        self.up4 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up4 = nn.UpsamplingNearest2d(scale_factor=2)
         self.pd4 = nn.ReplicationPad2d(1)
-        self.d5 = nn.Conv2d(ngf*2, ngf, 3, 1)
-        self.bn9 = nn.BatchNorm2d(ngf, 1.e-3)
+        self.d5 = nn.Conv2d(ngf*2, ngf, 3, 1, bias=False)
+        self.bn9 = nn.BatchNorm2d(ngf, 1.e-5)
 
-        self.up5 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up5 = nn.UpsamplingNearest2d(scale_factor=2)
         self.pd5 = nn.ReplicationPad2d(1)
-        self.d6 = nn.Conv2d(ngf, nc, 3, 1)
+        self.d6 = nn.Conv2d(ngf, nc, 3, 1, bias=True)
 
     def forward(self, x):
         # x = self.decoder_lin(x)
@@ -150,7 +151,7 @@ class Decoder(nn.Module):
         # x = torch.sigmoid(x)
         x = self.relu(self.d1(x))
         x = self.unflatten(x)
-        x = self.leakyrelu(self.bn6(self.d2(self.pd1(self.up1(x)))))
+        x = self.leakyrelu(self.bn6(self.d2(self.pd1((x)))))
         x = self.leakyrelu(self.bn7(self.d3(self.pd2(self.up2(x)))))
         x = self.leakyrelu(self.bn8(self.d4(self.pd3(self.up3(x)))))
         x = self.leakyrelu(self.bn9(self.d5(self.pd4(self.up4(x)))))
@@ -162,7 +163,7 @@ class Decoder(nn.Module):
         # x = F.relu(self.debatch3(self.deconv3(x)))
         # x = F.relu(self.debatch4(self.deconv4(x)))
         # x = self.deconv5(x)
-        x = torch.sigmoid(self.d6(self.pd5(self.up5(x))))
+        x = (self.d6(self.pd5(self.up5(x))))
 
         return x
 
