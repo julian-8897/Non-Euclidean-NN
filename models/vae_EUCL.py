@@ -4,8 +4,10 @@ from torch.autograd import Variable
 
 
 class VariationalEncoder(nn.Module):
-    def __init__(self, nc, ndf, latent_dims):
+    def __init__(self, nc, ndf, latent_dims, device):
         super(VariationalEncoder, self).__init__()
+        
+        self.device = device
 
         self.nc = nc
         self.ndf = ndf
@@ -46,7 +48,7 @@ class VariationalEncoder(nn.Module):
 
         std = logvar.mul(0.5).exp_()
 
-        eps = torch.FloatTensor(std.size()).normal_()
+        eps = torch.FloatTensor(std.size()).normal_().to(self.device)
         eps = Variable(eps)
         return eps.mul(std).add_(mu)
 
@@ -169,9 +171,9 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, nc, ndf, ngf, latent_dims):
+    def __init__(self, nc, ndf, ngf, latent_dims, device):
         super(VariationalAutoencoder, self).__init__()
-        self.encoder = VariationalEncoder(nc, ndf, latent_dims)
+        self.encoder = VariationalEncoder(nc, ndf, latent_dims, device)
         self.decoder = Decoder(nc, ngf, latent_dims)
 
     def forward(self, x):
