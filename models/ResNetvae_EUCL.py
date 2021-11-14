@@ -1,13 +1,14 @@
-import numpy as np
 import torch
 import torchvision.models as models
 from torch import nn
-import torch.nn.functional as F
+from torch.autograd import Variable
 
 
 class VariationalEncoder(nn.Module):
-    def __init__(self, nc, ndf, latent_dims):
+    def __init__(self, nc, ndf, latent_dims, device):
         super(VariationalEncoder, self).__init__()
+
+        self.device = device
 
         self.nc = nc
         self.ndf = ndf
@@ -30,7 +31,7 @@ class VariationalEncoder(nn.Module):
         #                        padding=1, bias=False)
         # self.batch5 = nn.BatchNorm2d(ndf*8)
 
-        self.resnet = models.resnet101(pretrained=True)
+        self.resnet = models.resnet152(pretrained=True)
         for param in self.resnet.parameters():
             param.requires_grad = False
         # modules = list(resnet.children())[:-1]      # delete the last fc layer.
@@ -50,9 +51,19 @@ class VariationalEncoder(nn.Module):
         # self.N.scale = self.N.scale.cuda()
         self.kl = 0
 
-    def reparametrise(self, mu, sigma):
-        z = mu + sigma*self.N.sample(mu.shape)
-        return z
+    # def reparametrise(self, mu, sigma):
+    #     z = mu + sigma*self.N.sample(mu.shape)
+    #     return z
+
+    def reparametrise(self, mu, logvar):
+        # z = mu + sigma*self.N.sample(mu.shape)
+        # return z
+
+        std = logvar.mul(0.5).exp_()
+
+        eps = torch.FloatTensor(std.size()).normal_().to(self.device)
+        eps = Variable(eps)
+        return eps.mul(std).add_(mu)
 
     def forward(self, x):
         # x = x.to(device)
@@ -67,13 +78,11 @@ class VariationalEncoder(nn.Module):
         #x = x.view(-1, 3*3*32)
         #x = F.relu(self.vgg.classifier[6](x))
         mu = self.linear2(x)
-        sigma = torch.exp(self.linear3(x))
-        # reparametrisation trick
-        #z = mu + sigma*self.N.sample(mu.shape)
-        z = self.reparametrise(mu, sigma)
-        # K-L divergence
-        self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
-        return z
+        logvar = self.linear3(x)
+        z = self.reparametrise(mu, logvar)
+        # # K-L divergence
+        # self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
+        return z, mu, logvar
 
 
 class Decoder(nn.Module):
@@ -103,8 +112,9 @@ class Decoder(nn.Module):
 
         self.ngf = ngf
         self.latent_dims = latent_dims
-        self.leakyrelu = nn.LeakyReLU()
+        self.leakyrelu = nn.LeakyReLU(0.2, True)
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
         self.d1 = nn.Linear(latent_dims, ngf*8*2*4*4)
 
@@ -151,18 +161,18 @@ class Decoder(nn.Module):
         # x = F.relu(self.debatch3(self.deconv3(x)))
         # x = F.relu(self.debatch4(self.deconv4(x)))
         # x = self.deconv5(x)
-        x = torch.sigmoid(self.d6(self.pd5(self.up5(x))))
+        x = (self.d6(self.pd5(self.up5(x))))
 
         return x
 
 
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, nc, ndf, ngf, latent_dims):
+    def __init__(self, nc, ndf, ngf, latent_dims, device):
         super(VariationalAutoencoder, self).__init__()
-        self.encoder = VariationalEncoder(nc, ndf, latent_dims)
+        self.encoder = VariationalEncoder(nc, ndf, latent_dims, device)
         self.decoder = Decoder(nc, ngf, latent_dims)
 
     def forward(self, x):
-        # x = x.to(device)
-        z = self.encoder(x)
-        return self.decoder(z)
+        z, mu, logvar = self.encoder(x)
+        final = self.decoder(z)
+        return final, mu, logvar
