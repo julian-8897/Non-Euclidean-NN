@@ -62,10 +62,11 @@ class VariationalEncoder(nn.Module):
         std = logvar.mul(0.5).exp_()
         N = wrapped_normal.WrappedNormal(
             mu, std, poincareball.PoincareBall(self.latent_dims))
-        # z.loc = z.loc.cuda()
-        # z.scale = z.scale.cuda()
+        #N.device = device
+        #N.scale = torch.FloatTensor(N.scale).to(device)
         #z = torch.FloatTensor(z).to(self.device)
         z = N.rsample()
+        z = Variable(z)
         return z
 
     def forward(self, x):
