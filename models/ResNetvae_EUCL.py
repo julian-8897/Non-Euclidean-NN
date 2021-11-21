@@ -2,6 +2,7 @@ import torch
 import torchvision.models as models
 from torch import nn
 from torch.autograd import Variable
+from facenet_pytorch import InceptionResnetV1
 
 
 class VariationalEncoder(nn.Module):
@@ -31,15 +32,15 @@ class VariationalEncoder(nn.Module):
         #                        padding=1, bias=False)
         # self.batch5 = nn.BatchNorm2d(ndf*8)
 
-        self.resnet = models.resnet152(pretrained=True)
+        self.resnet = InceptionResnetV1(pretrained='vggface2', classify=True)
         for param in self.resnet.parameters():
             param.requires_grad = False
         # modules = list(resnet.children())[:-1]      # delete the last fc layer.
         #self.resnet = nn.Sequential(*modules)
-
+        self.resnet.logits = nn.Linear(512, ndf*8*4)
         #self.vgg.classifier[6] = nn.Linear(4096, ndf*8*4)
-        num_ftrs = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(num_ftrs, ndf*8*4)
+        #num_ftrs = self.resnet.fc.in_features
+        #self.resnet.fc = nn.Linear(num_ftrs, ndf*8*4)
         self.linear2 = nn.Linear(ndf*8*4, latent_dims)
         self.linear3 = nn.Linear(ndf*8*4, latent_dims)
 
@@ -118,7 +119,7 @@ class Decoder(nn.Module):
 
         self.d1 = nn.Linear(latent_dims, ngf*8*2*4*4)
 
-        self.up1 = nn.UpsamplingBilinear2d(scale_factor=1)
+        self.up1 = nn.UpsamplingBilinear2d(scale_factor=2)
         self.pd1 = nn.ReplicationPad2d(1)
         self.d2 = nn.Conv2d(ngf*8*2, ngf*8, 3, 1, bias=False)
         self.bn6 = nn.BatchNorm2d(ngf*8, 1.e-3)
@@ -138,7 +139,7 @@ class Decoder(nn.Module):
         self.d5 = nn.Conv2d(ngf*2, ngf, 3, 1, bias=False)
         self.bn9 = nn.BatchNorm2d(ngf, 1.e-3)
 
-        self.up5 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up5 = nn.UpsamplingBilinear2d(scale_factor=1.25)
         self.pd5 = nn.ReplicationPad2d(1)
         self.d6 = nn.Conv2d(ngf, nc, 3, 1)
 
