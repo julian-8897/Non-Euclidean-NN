@@ -61,11 +61,11 @@ class VariationalEncoder(nn.Module):
 
         std = logvar.mul(0.5).exp_()
         N = wrapped_normal.WrappedNormal(
-            torch.as_tensor(mu, device=self.device), torch.as_tensor(std, device=self.device), poincareball.PoincareBall(self.latent_dims))
+            mu, std, poincareball.PoincareBall(self.latent_dims))
         N.loc = N.loc.to(self.device)
-        N.loc.device = self.device
+        #N.loc.device = self.device
         N._scale = N.scale.to(self.device)
-        
+
         #N.scale = torch.FloatTensor(N.scale).to(device)
         #z = torch.FloatTensor(z).to(self.device)
         z = N.rsample()
