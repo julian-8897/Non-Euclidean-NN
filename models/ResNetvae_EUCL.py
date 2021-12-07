@@ -2,7 +2,7 @@ import torch
 import torchvision.models as models
 from torch import nn
 from torch.autograd import Variable
-from facenet_pytorch import InceptionResnetV1
+#from facenet_pytorch import InceptionResnetV1
 
 
 class VariationalEncoder(nn.Module):

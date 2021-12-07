@@ -47,7 +47,7 @@ class WrappedNormal(torch.distributions.Distribution):
 
     def rsample(self, sample_shape=torch.Size()):
         shape = self._extended_shape(sample_shape)
-        v = self.scale * \
+        v = self._scale * \
             _standard_normal(shape, dtype=self.loc.dtype,
                              device=self.loc.device)
         self.manifold.assert_check_vector_on_tangent(self.manifold.zero, v)
