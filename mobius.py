@@ -116,7 +116,7 @@ import geoopt.manifolds.stereographic.math as pmath
 #         output = ball.expmap0(output)
 #     return output
 
-ball = geoopt.PoincareBall(c=0.0)
+ball = geoopt.PoincareBall(c=1.0)
 
 
 def mobius_linear(
@@ -126,10 +126,10 @@ def mobius_linear(
     hyperbolic_input=False,
     hyperbolic_bias=False,
     nonlin=None,
-    c=0.0,
+    c=1.0,
 ):
     if hyperbolic_input == True:
-        output = pmath.mobius_matvec(weight, input, c=c)
+        output = ball.mobius_matvec(weight, input)
     else:
         output = torch.nn.functional.linear(input, weight)
         output = ball.expmap0(output)
@@ -150,7 +150,7 @@ class MobLinear(torch.nn.Linear):
         hyperbolic_input=False,
         hyperbolic_bias=False,
         nonlin=None,
-        c=0.0,
+        c=1.0,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -175,7 +175,7 @@ class MobLinear(torch.nn.Linear):
             hyperbolic_input=self.hyperbolic_input,
             nonlin=self.nonlin,
             hyperbolic_bias=self.hyperbolic_bias,
-            c=0.0,
+            c=1.0,
         )
 
     # def extra_repr(self):
