@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
-from hypmath import wrapped_normal, mobius, poincareball
+from hypmath import wrapped_normal, poincareball
+from . import mobius
 
 
 class VariationalEncoder(nn.Module):

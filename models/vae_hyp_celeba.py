@@ -10,10 +10,12 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
-from hypmath import wrapped_normal, mobius
+from hypmath import wrapped_normal
 #from geoopt import PoincareBall as pball
 from hypmath import poincareball
 from torch.autograd import Variable
+
+from . import mobius
 
 
 class VariationalEncoder(nn.Module):
