@@ -11,7 +11,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 from hypmath import wrapped_normal, poincareball
-from . import mobius
+#from . import mobius
 
 
 class VariationalEncoder(nn.Module):
@@ -22,9 +22,13 @@ class VariationalEncoder(nn.Module):
         self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
         self.batch2 = nn.BatchNorm2d(16)
         self.conv3 = nn.Conv2d(16, 32, 3, stride=2, padding=0)
-        self.linear1 = mobius.MobLinear(3*3*32, 128)
-        self.linear2 = mobius.MobLinear(128, latent_dims)
-        self.linear3 = mobius.MobLinear(128, latent_dims)
+        # self.linear1 = mobius.MobLinear(3*3*32, 128)
+        # self.linear2 = mobius.MobLinear(128, latent_dims)
+        # self.linear3 = mobius.MobLinear(128, latent_dims)
+
+        self.linear1 = nn.Linear(3*3*32, 128)
+        self.linear2 = nn.Linear(128, latent_dims)
+        self.linear3 = nn.Linear(128, latent_dims)
 
         # self.N = wrapped_normal.WrappedNormal(
         #     torch.zeros(latent_dims), torch.Tensor([1]), poincareball.PoincareBall(self.latent_dims))
