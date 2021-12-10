@@ -15,7 +15,7 @@ from hypmath import wrapped_normal
 from hypmath import poincareball
 from torch.autograd import Variable
 
-from . import mobius
+# from . import mobius
 
 
 class VariationalEncoder(nn.Module):
