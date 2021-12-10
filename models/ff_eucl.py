@@ -1,5 +1,3 @@
-import numpy as np
-import torch
 import torch.nn as nn
 
 
@@ -7,7 +5,6 @@ class EuclFF(nn.Module):
 
     def __init__(self, input_size, hidden_size1, hidden_size2, output_size, act_fn):
         super(EuclFF, self).__init__()
-        # self.flatten = nn.Flatten()
         self.input_size = input_size
         self.hidden_size1 = hidden_size1
         self.hidden_size2 = hidden_size2
