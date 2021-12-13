@@ -6,30 +6,24 @@ from torch.autograd import Variable
 class VariationalEncoder(nn.Module):
     def __init__(self, nc, ndf, latent_dims, device):
         super(VariationalEncoder, self).__init__()
-        
-        self.device = device
 
+        self.device = device
         self.nc = nc
         self.ndf = ndf
         self.latent_dims = latent_dims
         self.conv1 = nn.Conv2d(nc, ndf, 4, stride=2, padding=1, bias=False)
         self.batch1 = nn.BatchNorm2d(ndf)
-
         self.conv2 = nn.Conv2d(ndf, ndf*2, 4, stride=2, padding=1, bias=False)
         self.batch2 = nn.BatchNorm2d(ndf*2)
-
         self.conv3 = nn.Conv2d(ndf*2, ndf*4, 4, stride=2,
                                padding=1, bias=False)
         self.batch3 = nn.BatchNorm2d(ndf*4)
-
         self.conv4 = nn.Conv2d(ndf*4, ndf*8, 4, stride=2,
                                padding=1, bias=False)
         self.batch4 = nn.BatchNorm2d(ndf*8)
-
         self.conv5 = nn.Conv2d(ndf*8, ndf*8, 4, stride=2,
                                padding=1, bias=False)
         self.batch5 = nn.BatchNorm2d(ndf*8)
-
         #self.linear1 = nn.Linear(ndf*8, 256)
         self.linear2 = nn.Linear(ndf*8*4, latent_dims)
         self.linear3 = nn.Linear(ndf*8*4, latent_dims)
@@ -47,7 +41,6 @@ class VariationalEncoder(nn.Module):
         # return z
 
         std = logvar.mul(0.5).exp_()
-
         eps = torch.FloatTensor(std.size()).normal_().to(self.device)
         eps = Variable(eps)
         return eps.mul(std).add_(mu)
