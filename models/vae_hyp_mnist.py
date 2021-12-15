@@ -1,20 +1,14 @@
-from geoopt.manifolds.stereographic.manifold import PoincareBall
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import random
 import torch
-import torchvision
-from torchvision import transforms
-from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
 from hypmath import wrapped_normal, poincareball
-#from . import mobius
 
 
 class VariationalEncoder(nn.Module):
+    """
+    Hyperbolic encoder architecture for the MNIST data
+    """
+
     def __init__(self, latent_dims):
         super(VariationalEncoder, self).__init__()
         self.latent_dims = latent_dims
@@ -22,18 +16,9 @@ class VariationalEncoder(nn.Module):
         self.conv2 = nn.Conv2d(8, 16, 3, stride=2, padding=1)
         self.batch2 = nn.BatchNorm2d(16)
         self.conv3 = nn.Conv2d(16, 32, 3, stride=2, padding=0)
-        # self.linear1 = mobius.MobLinear(3*3*32, 128)
-        # self.linear2 = mobius.MobLinear(128, latent_dims)
-        # self.linear3 = mobius.MobLinear(128, latent_dims)
-
         self.linear1 = nn.Linear(3*3*32, 128)
         self.linear2 = nn.Linear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
-
-        # self.N = wrapped_normal.WrappedNormal(
-        #     torch.zeros(latent_dims), torch.Tensor([1]), poincareball.PoincareBall(self.latent_dims))
-        # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
-        # self.N.scale = self.N.scale.cuda()
         self.kl = 0
 
     def forward(self, x):
@@ -43,7 +28,6 @@ class VariationalEncoder(nn.Module):
         x = F.relu(self.conv3(x))
         x = torch.flatten(x, start_dim=1)
         x = poincareball.PoincareBall(self.latent_dims).expmap0(x)
-        #x = F.relu(self.linear1(x))
         x = self.linear1(x)
         x = poincareball.PoincareBall(self.latent_dims).logmap0(x)
         mu = poincareball.PoincareBall(
@@ -59,6 +43,9 @@ class VariationalEncoder(nn.Module):
 
 
 class Decoder(nn.Module):
+    """
+    Hyperbolic decoder architecture for the MNIST data
+    """
 
     def __init__(self, latent_dims):
         super().__init__()
@@ -94,12 +81,17 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoencoder(nn.Module):
+    """
+    Full hyperbolic VAE architecture incorporating encoder and decoder
+    Parameter:
+    latent_dims: dimension of latent space
+    """
+
     def __init__(self, latent_dims):
         super(VariationalAutoencoder, self).__init__()
         self.encoder = VariationalEncoder(latent_dims)
         self.decoder = Decoder(latent_dims)
 
     def forward(self, x):
-        # x = x.to(device)
         z = self.encoder(x)
         return self.decoder(z)

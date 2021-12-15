@@ -1,29 +1,19 @@
-from geoopt.manifolds.stereographic.manifold import PoincareBall
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import random
 import torch
-from torch._C import device
-import torchvision
-from torchvision import transforms
-from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
 from hypmath import wrapped_normal
-#from geoopt import PoincareBall as pball
 from hypmath import poincareball
-from torch.autograd import Variable
-
-# from . import mobius
 
 
 class VariationalEncoder(nn.Module):
+    """
+    Hyperbolic encoder architecture for the CelebA data
+    """
+
     def __init__(self, nc, ndf, latent_dims, device):
         super(VariationalEncoder, self).__init__()
 
         self.device = device
-
         self.nc = nc
         self.ndf = ndf
         self.latent_dims = latent_dims
@@ -45,7 +35,6 @@ class VariationalEncoder(nn.Module):
                                padding=1, bias=False)
         self.batch5 = nn.BatchNorm2d(ndf*8)
 
-        #self.linear1 = nn.Linear(ndf*8, 256)
         self.linear2 = nn.Linear(ndf*8*4, latent_dims)
         self.linear3 = nn.Linear(ndf*8*4, latent_dims)
 
@@ -53,73 +42,39 @@ class VariationalEncoder(nn.Module):
 
         self.leakyrelu = nn.LeakyReLU(0.2)
         self.relu = nn.ReLU()
-        # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
-        # self.N.scale = self.N.scale.cuda()
-        #self.kl = 0
 
     def reparametrise(self, mu, logvar):
-        # z = mu + sigma*self.N.sample(mu.shape)
-        # return z
-
         std = logvar.mul(0.5).exp_()
         N = wrapped_normal.WrappedNormal(
             mu, std, poincareball.PoincareBall(self.latent_dims))
         N.loc = N.loc.to(self.device)
-        #N.loc.device = self.device
         N._scale = N._scale.to(self.device)
         N.manifold = N.manifold.to(self.device)
-        #N.scale = N.scale.to(self.device)
-
-        #N.scale = torch.FloatTensor(N.scale).to(device)
-        #z = torch.FloatTensor(z).to(self.device)
         z = N.rsample()
         return z
 
     def forward(self, x):
-        # x = x.to(device)
         x = self.leakyrelu(self.batch1(self.conv1(x)))
         x = self.leakyrelu(self.batch2(self.conv2(x)))
         x = self.leakyrelu(self.batch3(self.conv3(x)))
         x = self.leakyrelu(self.batch4(self.conv4(x)))
         x = self.leakyrelu(self.batch5(self.conv5(x)))
         x = torch.flatten(x, start_dim=1)
-        #x = poincareball.PoincareBall(self.latent_dims).projx(x)
-        #x = F.relu(self.linear1(x))
         mu = poincareball.PoincareBall(
             self.latent_dims).expmap0(self.linear2(x))
         logvar = F.softplus(self.linear3(x))
         z = self.reparametrise(mu, logvar)
-        # self.N = wrapped_normal.WrappedNormal(
-        #     mu, sigma, poincareball.PoincareBall(self.latent_dims))
-        # # reparametrisation trick
         return z, mu, logvar
 
 
 class Decoder(nn.Module):
+    """
+    Hyperbolic decoder architecture for the CelebA data
+    """
 
     def __init__(self, nc, ngf, latent_dims):
         super().__init__()
-
-        # self.decoder_lin = nn.Sequential(
-        #     nn.Linear(latent_dims, 128),
-        #     nn.ReLU(True),
-        #     nn.Linear(128, 3 * 3 * 32),
-        #     nn.ReLU(True)
-        # )
-
         self.unflatten = nn.Unflatten(dim=1, unflattened_size=(ngf*8*2, 4, 4))
-
-        # self.decoder_conv = nn.Sequential(
-        #     nn.ConvTranspose2d(32, 16, 3, stride=2, output_padding=0),
-        #     nn.BatchNorm2d(16),
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(16, 8, 3, stride=2,
-        #                        padding=1, output_padding=1),
-        #     nn.BatchNorm2d(8),
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(8, 3, 3, stride=2, padding=1, output_padding=1)
-        # )
-
         self.ngf = ngf
         self.latent_dims = latent_dims
         self.leakyrelu = nn.LeakyReLU(0.2, True)
@@ -165,6 +120,16 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoencoder(nn.Module):
+    """
+    Full hyperbolic VAE architecture incorporating encoder and decoder
+    Parameters:
+    nc: number of input channels
+    ndf: horizontal size of image, use 64
+    ngf: vertical size of image, use 64
+    latent_dims: dimension of latent space
+    device: specified GPU or CPU
+    """
+
     def __init__(self, nc, ndf, ngf, latent_dims, device):
         super(VariationalAutoencoder, self).__init__()
         self.encoder = VariationalEncoder(nc, ndf, latent_dims, device)

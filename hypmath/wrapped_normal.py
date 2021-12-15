@@ -1,4 +1,3 @@
-import geoopt
 import torch
 from torch.nn import functional as F
 from torch.distributions import Normal, Independent
@@ -7,6 +6,9 @@ from torch.distributions.utils import _standard_normal, broadcast_all
 
 
 class WrappedNormal(torch.distributions.Distribution):
+    """
+    Implementation of the wrapped normal distribution, with sampling capabilities
+    """
 
     arg_constraints = {'loc': torch.distributions.constraints.real,
                        'scale': torch.distributions.constraints.positive}
@@ -42,10 +44,18 @@ class WrappedNormal(torch.distributions.Distribution):
                                             event_shape, validate_args=validate_args)
 
     def sample(self, shape=torch.Size()):
+        """
+        Sampling with gradient calculations disabled
+        """
+
         with torch.no_grad():
             return self.rsample(shape)
 
     def rsample(self, sample_shape=torch.Size()):
+        """
+        Sampling with gradient calculations enabled
+        """
+
         shape = self._extended_shape(sample_shape)
         v = self._scale * \
             _standard_normal(shape, dtype=self.loc.dtype,
@@ -55,18 +65,3 @@ class WrappedNormal(torch.distributions.Distribution):
         u = self.manifold.transp(self.manifold.zero, self.loc, v)
         z = self.manifold.expmap(self.loc, u)
         return z
-
-    def log_prob(self, x):
-        shape = x.shape
-        loc = self.loc.unsqueeze(0).expand(
-            x.shape[0], *self.batch_shape, self.manifold.coord_dim)
-        if len(shape) < len(loc.shape):
-            x = x.unsqueeze(1)
-        v = self.manifold.logmap(loc, x)
-        v = self.manifold.transp(loc, self.manifold.zero, v)
-        u = v * self.manifold.lambda_x(self.manifold.zero, keepdim=True)
-        norm_pdf = Normal(torch.zeros_like(self.scale),
-                          self.scale).log_prob(u).sum(-1, keepdim=True)
-        logdetexp = self.manifold.logdetexp(loc, x, keepdim=True)
-        result = norm_pdf - logdetexp
-        return result

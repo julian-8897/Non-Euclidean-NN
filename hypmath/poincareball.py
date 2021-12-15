@@ -6,6 +6,9 @@ MIN_NORM = 1e-15
 
 
 class PoincareBall(PoincareBallParent):
+    """
+    Extension of the PoincarBall base manifold, with additional functions, used for the hyperbolic VAE
+    """
 
     def __init__(self, dim, c=1.0):
         super().__init__(c)

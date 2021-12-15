@@ -1,20 +1,14 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import random
 import torch
-import torchvision
-from torchvision import transforms
-from torch.utils.data import DataLoader, random_split
 from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
 
 
 class VariationalEncoder(nn.Module):
-    def __init__(self, latent_dims):
-        super(VariationalEncoder, self).__init__()
+    """
+    Euclidean encoder architecture for the MNIST data
+    """
 
+    def __init__(self, latent_dims):
         super(VariationalEncoder, self).__init__()
         self.latent_dims = latent_dims
         self.conv1 = nn.Conv2d(1, 8, 3, stride=2, padding=1)
@@ -24,7 +18,6 @@ class VariationalEncoder(nn.Module):
         self.linear1 = nn.Linear(3*3*32, 128)
         self.linear2 = nn.Linear(128, latent_dims)
         self.linear3 = nn.Linear(128, latent_dims)
-
         self.N = torch.distributions.Normal(0, 1)
         # self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
         # self.N.scale = self.N.scale.cuda()
@@ -47,19 +40,19 @@ class VariationalEncoder(nn.Module):
 
 
 class Decoder(nn.Module):
+    """
+    Euclidean decoder architecture for the MNIST data
+    """
 
     def __init__(self, latent_dims):
         super().__init__()
-
         self.decoder_lin = nn.Sequential(
             nn.Linear(latent_dims, 128),
             nn.ReLU(True),
             nn.Linear(128, 3 * 3 * 32),
             nn.ReLU(True)
         )
-
         self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 3, 3))
-
         self.decoder_conv = nn.Sequential(
             nn.ConvTranspose2d(32, 16, 3, stride=2,
                                output_padding=0, bias=False),
@@ -81,6 +74,12 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoencoder(nn.Module):
+    """
+    Full Euclidean VAE architecture incorporating encoder and decoder
+    Parameter:
+    latent_dims: dimension of latent space
+    """
+
     def __init__(self, latent_dims):
         super(VariationalAutoencoder, self).__init__()
         self.encoder = VariationalEncoder(latent_dims)
