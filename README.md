@@ -11,5 +11,5 @@ Models Implemented:
 2. Euclidean & Hyperbolic VAE, evaluated on MNIST, and CelebA data sets.
 
 Notes:
-1. Model architectures can be found under the 'models' package
-2. Additional supplementary modules can be found under the 'hypmath' package
+1. Model architectures can be found under the 'models' package.
+2. Additional supplementary modules can be found under the 'hypmath' package.
